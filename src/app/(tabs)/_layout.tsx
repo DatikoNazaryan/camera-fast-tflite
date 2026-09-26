@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Dimensions, Platform, useWindowDimensions, ViewStyle } from 'react-native';
+import { Dimensions, Platform, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from "react-i18next";
 
@@ -74,13 +74,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="calories"
+        name="history"
         options={{
-          title: t('Calories'),
+          title: t('History'),
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="nutrition" size={size - 2} color={color} />
+            <Ionicons name="time" size={size - 2} color={color}/>
           ),
-          tabBarLabel: t('Calories'),
+          tabBarLabel: t('History'),
         }}
       />
       <Tabs.Screen

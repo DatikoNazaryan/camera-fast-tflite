@@ -67,10 +67,12 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   iconBadge: {
-    marginBottom: 20,
+    marginBottom: 24,
     backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderRadius: 40,
-    padding: 15,
+    borderRadius: 30,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
   },
   title: {
     fontSize: 28,

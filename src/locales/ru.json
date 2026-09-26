@@ -8,7 +8,9 @@
   "searching": "Поиск...",
   "Home": "Главная",
   "Cars": "Машины",
-  "Calories": "Калории",
+  "History": "История",
+  "NoHistory": "История пуста",
+  "RecognizedObjectsWillAppearHere": "Распознанные объекты появятся здесь",
   "Settings": "Настройки",
   "SettingsShort": "Настр.",
   "Select Language": "Выбрать язык",
@@ -20,5 +22,51 @@
   "carBrands": "Марки автомобилей",
   "carNotDetected": "Автомобиль не обнаружен",
   "foodNotDetected": "Еда не обнаружена (0 ккал)",
-  "calorieCalculation": "Расчёт калорий"
+  "calorieCalculation": "Расчёт калорий",
+  "welcomeTitle": "Умное распознавание",
+  "welcomeSubtitle": "Сканируйте и распознавайте объекты мгновенно с помощью ИИ и камеры.",
+  "login": "Войти",
+  "register": "Создать аккаунт",
+  "welcomeBack": "С возвращением",
+  "signInToContinue": "Войдите, чтобы получить доступ к истории сканирования",
+  "createAccount": "Создать аккаунт",
+  "signUpToGetStarted": "Зарегистрируйтесь, чтобы начать распознавание объектов",
+  "namePlaceholder": "Имя и фамилия",
+  "emailPlaceholder": "Эл. почта",
+  "passwordPlaceholder": "Пароль",
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить"
+  },
+  "settings": {
+    "failedToUpdateName": "Не удалось обновить имя",
+    "failedToUpdatePassword": "Не удалось обновить пароль",
+    "title": "Настройки",
+    "account": "Аккаунт",
+    "changeName": "Изменить имя",
+    "changePassword": "Изменить пароль",
+    "selectLanguage": "Выберите язык",
+    "armenian": "Армянский",
+    "russian": "Русский",
+    "english": "Английский",
+    "logout": "Выйти",
+    "deleteAccount": "Удалить аккаунт",
+    "user": "Пользователь",
+    "enterNewName": "Введите новое имя",
+    "newPassword": "Новый пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "logoutConfirmation": "Вы уверены, что хотите выйти?",
+    "deleteAccountConfirmation": "Вы уверены, что хотите навсегда удалить аккаунт?",
+    "errors": {
+      "nameRequired": "Введите имя",
+      "passwordRequired": "Введите пароль",
+      "passwordMinLength": "Пароль должен содержать не менее 6 символов",
+      "passwordMismatch": "Пароли не совпадают"
+    },
+    "success": {
+      "nameChanged": "Имя успешно изменено",
+      "passwordChanged": "Пароль успешно изменён"
+    }
+  }
 }

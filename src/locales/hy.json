@@ -8,7 +8,9 @@
   "searching": "Որոնում եմ...",
   "Home": "Գլխավոր",
   "Cars": "Մեքենաներ",
-  "Calories": "Կալորիաներ",
+  "History": "Պատմություն",
+  "NoHistory": "Պատմությունը դատարկ է",
+  "RecognizedObjectsWillAppearHere": "Ճանաչված օբյեկտները կհայտնվեն այստեղ",
   "Settings": "Կարգավորումներ",
   "SettingsShort": "Կարգ.",
   "Select Language": "Ընտրել լեզուն",
@@ -20,5 +22,51 @@
   "carBrands": "Ավտոմեքենաների Մակնիշներ",
   "carNotDetected": "Մեքենա չի հայտնաբերվել",
   "foodNotDetected": "Սնունդ չկա (0 կկալ)",
-  "calorieCalculation": "Կալորիաների Հաշվարկ"
+  "calorieCalculation": "Կալորիաների Հաշվարկ",
+  "welcomeTitle": "Խելացի Ճանաչում",
+  "welcomeSubtitle": "Սկանավորեք և անմիջապես ճանաչեք առարկաները՝ օգտագործելով արհեստական բանականությունը և տեսախցիկը:",
+  "login": "Մուտք",
+  "register": "Գրանցվել",
+  "welcomeBack": "Բարի վերադարձ",
+  "signInToContinue": "Մուտք գործեք՝ սկանավորված պատմությանը հասանելիություն ստանալու համար",
+  "createAccount": "Ստեղծել հաշիվ",
+  "signUpToGetStarted": "Գրանցվեք առարկաների ճանաչումը սկսելու համար",
+  "namePlaceholder": "Անուն Ազգանուն",
+  "emailPlaceholder": "Էլ. հասցե",
+  "passwordPlaceholder": "Գաղտնաբառ",
+  "common": {
+    "save": "Պահպանել",
+    "cancel": "Չեղարկել",
+    "delete": "Ջնջել"
+  },
+  "settings": {
+    "failedToUpdateName": "Անունը թարմացնել չհաջողվեց",
+    "failedToUpdatePassword": "Գաղտնաբառը թարմացնել չհաջողվեց",
+    "title": "Կարգավորումներ",
+    "account": "Հաշիվ",
+    "changeName": "Փոխել անունը",
+    "changePassword": "Փոխել գաղտնաբառը",
+    "selectLanguage": "Ընտրել լեզուն",
+    "armenian": "Հայերեն",
+    "russian": "Ռուսերեն",
+    "english": "Անգլերեն",
+    "logout": "Դուրս գալ",
+    "deleteAccount": "Ջնջել հաշիվը",
+    "user": "Օգտատեր",
+    "enterNewName": "Մուտքագրեք նոր անունը",
+    "newPassword": "Նոր գաղտնաբառ",
+    "confirmPassword": "Հաստատեք գաղտնաբառը",
+    "logoutConfirmation": "Վստա՞հ եք, որ ցանկանում եք դուրս գալ։",
+    "deleteAccountConfirmation": "Վստա՞հ եք, որ ցանկանում եք ընդմիշտ ջնջել ձեր հաշիվը։",
+    "errors": {
+      "nameRequired": "Անունը պարտադիր է",
+      "passwordRequired": "Գաղտնաբառը պարտադիր է",
+      "passwordMinLength": "Գաղտնաբառը պետք է պարունակի առնվազն 6 նիշ",
+      "passwordMismatch": "Գաղտնաբառերը չեն համընկնում"
+    },
+    "success": {
+      "nameChanged": "Անունը հաջողությամբ փոխվել է",
+      "passwordChanged": "Գաղտնաբառը հաջողությամբ փոխվել է"
+    }
+  }
 }
