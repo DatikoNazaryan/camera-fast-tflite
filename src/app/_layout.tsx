@@ -7,6 +7,7 @@ import {
   ThemeProvider,
 } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,6 +15,8 @@ import { Provider } from 'react-redux';
 
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { store, useAppSelector } from '@src/store';
+
+SplashScreen.setOptions({ duration: 400, fade: true });
 
 function AppContent() {
   const colorScheme = useColorScheme();
