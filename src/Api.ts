@@ -6,7 +6,7 @@ import i18n from '@src/locales/i18n';
 import qs from 'query-string';
 import { UserRegisterRequest, UserLoginRequest, UpdateUserRequest } from '@/src/types/user';
 
-const API_URL = 'http://192.168.123.40:3000';
+const API_URL = 'http://192.168.100.69:3000';
 
 const api = axios.create({
   baseURL: API_URL,
