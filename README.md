@@ -4,6 +4,27 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Get started
 
+### Armenian audio
+
+Armenian recognition labels play bundled Azure Anahit MP3s from `assets/tts/hy`.
+The app needs neither Azure credentials nor an internet connection for these clips.
+English and Russian continue to use device text-to-speech.
+
+After installing dependencies, rebuild the native development app (`npm run ios`
+or `npm run android`) to include `expo-audio`; an existing development binary
+without this native module cannot load the updated screen.
+
+To regenerate the pack, set `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` in the
+Git-ignored `.env.tts.local`, then run `npm run tts:generate:hy`.
+Existing clips are skipped; after editing label text, pass `-- --force` to
+regenerate them. Commit the MP3s and generated `src/services/tts/hyClips.ts`
+together. Voice auditions run with `npm run tts:audition -- --generate` and are
+stored separately under `artifacts/tts-audition`.
+
+On a rebuilt physical iPhone and Android device, check recognition in airplane
+mode, repeat a label after restarting scanning, mute, navigate away during
+playback, and check iPhone silent-mode playback and Bluetooth routing.
+
 1. Install dependencies
 
    ```bash

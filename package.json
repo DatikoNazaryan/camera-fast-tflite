@@ -3,6 +3,8 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
+    "tts:audition": "node --env-file-if-exists=.env.tts.local scripts/audition-tts.mjs",
+    "tts:generate:hy": "node --env-file=.env.tts.local scripts/generate-tts.mjs --lang hy --all --voice hy-AM-AnahitNeural",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
@@ -21,6 +23,7 @@
     "@shopify/react-native-skia": "2.6.2",
     "axios": "^1.20.0",
     "expo": "^57.0.0",
+    "expo-audio": "~57.0.5",
     "expo-constants": "~57.0.18",
     "expo-dev-client": "~57.0.19",
     "expo-font": "~57.0.4",

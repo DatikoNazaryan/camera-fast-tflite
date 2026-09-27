@@ -22,7 +22,7 @@ import labelHy from '@/assets/lables/labelsHy.json';
 import { useRunOnJS } from 'react-native-worklets-core';
 import { CONFIDENCE_THRESHOLD } from '@/src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
+import { useRecognitionSpeech } from '@/src/hooks/useRecognitionSpeech';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
 import i18n from 'i18next';
@@ -59,7 +59,7 @@ export default function CameraScreen() {
   const cameraRef = useRef<Camera>(null);
   const isCapturingRef = useRef(false);
   const recognitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingRecognitionRef = useRef<{ name: string; confidence: number } | null>(null);
+  const pendingRecognitionRef = useRef<{ id: number; name: string; confidence: number } | null>(null);
   const [recognizedImage, setRecognizedImage] = useState<string | null>(null);
   const [recognizedName, setRecognizedName] = useState<string | null>(null);
   const [recognizedConfidence, setRecognizedConfidence] = useState<number | null>(null);
@@ -67,62 +67,23 @@ export default function CameraScreen() {
   const [predictedValue, setPredictedValue] = useState<string | null>(t('searching'));
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
 
-  const lastSpokenRef = useRef<string>('');
+  const { speak, stop: stopSpeech } = useRecognitionSpeech(isSpeechEnabled, i18n.language);
   const lastRecognizedRef = useRef<string>('');
 
   const setPredictedValueJS = useRunOnJS(setPredictedValue, []);
   const searchingText = t('searching');
   const unknownText = t('unknown');
-  const checkSpeechLanguages = async () => {
-    const languages = await Speech.getAvailableVoicesAsync();
-    // const service = Speech.
-
-    console.log(languages);
-    console.log(
-      'Available Speech Languages:',
-      languages.map(voice => ({
-        identifier: voice.identifier,
-        language: voice.language,
-        name: voice.name,
-      })).filter(voice => voice.language.startsWith('hy')),
-    );
-  };
-
-
   useEffect(() => {
     if (!hasPermission) {
       requestPermission();
     }
-    checkSpeechLanguages();
   }, [hasPermission, requestPermission]);
 
-  const speakResult = (text: string) => {
-    if (
-      !isSpeechEnabled ||
-      text === searchingText ||
-      text === unknownText ||
-      text === lastSpokenRef.current
-    ) {
-      return;
-    }
+  useEffect(() => () => {
+    if (recognitionTimerRef.current) clearTimeout(recognitionTimerRef.current);
+  }, []);
 
-    lastSpokenRef.current = text;
-
-    const speechLanguage =
-      i18n.language === 'hy'
-        ? 'hy-AM'
-        : i18n.language === 'ru'
-          ? 'ru-RU'
-          : 'en-US';
-
-    Speech.stop();
-    Speech.speak(text, {
-      language: speechLanguage,
-      rate: 0.9,
-    });
-  };
-
-  const handleRecognition = async (name: string, confidence: number) => {
+  const handleRecognition = async (id: number, name: string, confidence: number) => {
     if (isCapturingRef.current) return;
 
     const camera = cameraRef.current;
@@ -131,7 +92,7 @@ export default function CameraScreen() {
     isCapturingRef.current = true;
 
     try {
-      speakResult(name);
+      void speak(id, name);
 
       const photo = await camera.takePhoto({
         enableShutterSound: false,
@@ -160,7 +121,7 @@ export default function CameraScreen() {
     }
   };
 
-  const handleRecognitionRun = useRunOnJS((name: string, confidence: number) => {
+  const handleRecognitionRun = useRunOnJS((id: number, name: string, confidence: number) => {
     if (!isScanning || isCapturingRef.current) return;
 
     const currentRecognition = pendingRecognitionRef.current;
@@ -170,16 +131,16 @@ export default function CameraScreen() {
       clearTimeout(recognitionTimerRef.current);
     }
 
-    pendingRecognitionRef.current = { name, confidence };
+    pendingRecognitionRef.current = { id, name, confidence };
 
     recognitionTimerRef.current = setTimeout(() => {
       const pending = pendingRecognitionRef.current;
       if (!pending) return;
-      handleRecognition(pending.name, pending.confidence);
+      handleRecognition(pending.id, pending.name, pending.confidence);
       pendingRecognitionRef.current = null;
       recognitionTimerRef.current = null;
     }, RECOGNITION_DELAY);
-  }, [isScanning]);
+  }, [isScanning, speak]);
 
   const frameProcessor = useFrameProcessor(
     (frame) => {
@@ -237,14 +198,14 @@ export default function CameraScreen() {
             name !== lastRecognizedRef.current
           ) {
             lastRecognizedRef.current = name;
-            handleRecognitionRun(name, maxValue);
+            handleRecognitionRun(labels[maxIndex].id, name, maxValue);
           }
         } else {
           setPredictedValueJS(searchingText);
         }
       });
     },
-    [model, labels, isScanning]
+    [model, labels, isScanning, handleRecognitionRun, searchingText, unknownText, resize, setPredictedValueJS]
   );
 
   const resetScanner = () => {
@@ -258,7 +219,7 @@ export default function CameraScreen() {
     setRecognizedName(null);
     setRecognizedConfidence(null);
     lastRecognizedRef.current = '';
-    lastSpokenRef.current = '';
+    stopSpeech();
     setPredictedValue(searchingText);
     setIsScanning(true);
   };

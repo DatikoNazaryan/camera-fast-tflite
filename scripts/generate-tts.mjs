@@ -41,11 +41,12 @@ const CONCURRENCY = 4;
 const MAX_RETRIES = 5;
 
 function parseArgs(argv) {
-  const args = { lang: 'hy', all: false, force: false, ids: null, voice: null, rate: null };
+  const args = { lang: 'hy', all: false, force: false, ids: null, voice: null, rate: null, audition: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--all') args.all = true;
     else if (a === '--force') args.force = true;
+    else if (a === '--audition') args.audition = true;
     else if (a === '--lang') args.lang = argv[++i];
     else if (a === '--voice') args.voice = argv[++i];
     else if (a === '--rate') args.rate = argv[++i];
@@ -150,13 +151,16 @@ async function main() {
   const labelFile = LABEL_FILES[args.lang];
   if (!labelFile) throw new Error(`No label file configured for lang "${args.lang}"`);
   const voice = args.voice ?? VOICES[args.lang];
+  if (!/^[a-zA-Z0-9-]+$/.test(voice)) throw new Error('Invalid voice identifier.');
   const locale = voice.split('-').slice(0, 2).join('-');
 
   const labels = JSON.parse(await readFile(path.join(ROOT, labelFile), 'utf8'));
   const selected = args.all ? labels : labels.filter((l) => args.ids.includes(l.id));
   if (!selected.length) throw new Error('No labels matched the given --ids.');
 
-  const outDir = path.join(ROOT, 'assets/tts', args.lang);
+  const outDir = args.audition
+    ? path.join(ROOT, 'artifacts/tts-audition', voice)
+    : path.join(ROOT, 'assets/tts', args.lang);
   await mkdir(outDir, { recursive: true });
 
   const todo = selected.filter(
@@ -192,8 +196,10 @@ async function main() {
   }
   console.log(`pack size: ${(bytes / 1024 / 1024).toFixed(2)} MB in ${outDir}`);
 
-  const { dest, count } = await writeRequireMap(args.lang, outDir);
-  console.log(`wrote ${path.relative(ROOT, dest)} (${count} entries)`);
+  if (!args.audition) {
+    const { dest, count } = await writeRequireMap(args.lang, outDir);
+    console.log(`wrote ${path.relative(ROOT, dest)} (${count} entries)`);
+  }
 
   const chars = selected.reduce((n, l) => n + l.name.length, 0);
   console.log(`billed characters this run: ~${todo.reduce((n, l) => n + l.name.length, 0)} (selection total ${chars})`);
