@@ -307,7 +307,7 @@ export default function CameraScreen() {
                 <Text style={styles.resultName}>{recognizedName}</Text>
                 {recognizedConfidence !== null && (
                   <Text style={styles.resultConfidence}>
-                    {Math.round(recognizedConfidence)}%
+                    {Math.min(100, Math.round(recognizedConfidence))}%
                   </Text>
                 )}
               </View>

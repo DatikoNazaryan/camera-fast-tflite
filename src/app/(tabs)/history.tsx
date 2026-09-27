@@ -119,7 +119,7 @@ export default function HistoryScreen() {
 
         <View style={styles.rightContainer}>
           <Text style={styles.confidence}>
-            {Math.round(item.confidence)} %
+            {Math.min(100, Math.round(item.confidence))} %
           </Text>
         </View>
       </View>
