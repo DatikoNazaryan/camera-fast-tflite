@@ -20,7 +20,9 @@ import labels from '@/assets/lables/carLabels.json';
 const { width } = Dimensions.get('window');
 
 const MODEL_INPUT_SIZE = 224;
-const CONFIDENCE_THRESHOLD = 0.01;
+// With 41 softmax classes, even an uncertain winner scores at least 1/41.
+// Reject weak guesses; 0.75 matches the object scanner's confidence cutoff.
+const CONFIDENCE_THRESHOLD = 0.75;
 
 export default function CarsScreen() {
   const device = useCameraDevice('back');
