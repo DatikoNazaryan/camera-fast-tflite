@@ -20,7 +20,7 @@ import labels from '@/assets/lables/carLabels.json';
 const { width } = Dimensions.get('window');
 
 const MODEL_INPUT_SIZE = 224;
-const CONFIDENCE_THRESHOLD = 0.1;
+const CONFIDENCE_THRESHOLD = 0.75;
 
 export default function CarsScreen() {
   const device = useCameraDevice('back');
