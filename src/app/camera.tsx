@@ -58,7 +58,6 @@ export default function CameraScreen() {
       {isScanning && (
         <>
           <ScanOverlay />
-
           <CameraTopBar
             isSpeechEnabled={
               isSpeechEnabled
