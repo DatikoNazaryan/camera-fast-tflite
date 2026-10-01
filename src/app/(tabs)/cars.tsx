@@ -1,40 +1,150 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { Camera, useCameraDevice, useCameraPermission } from "react-native-vision-camera";
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from "react-i18next";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useEffect, useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Dimensions,
+} from 'react-native';
+import {
+  Camera,
+  useCameraDevice,
+  useCameraPermission,
+  useFrameProcessor,
+  runAtTargetFps,
+} from 'react-native-vision-camera';
+import { useTensorflowModel } from 'react-native-fast-tflite';
+import { useResizePlugin } from 'vision-camera-resize-plugin';
+import { Worklets } from 'react-native-worklets-core';
+import labels from '@/assets/lables/carLabels.json';
+
+const { width } = Dimensions.get('window');
+
+const MODEL_INPUT_SIZE = 224;
+const CONFIDENCE_THRESHOLD = 0.01;
 
 export default function CarsScreen() {
-  const { t } = useTranslation();
-  const safeAreaInsets = useSafeAreaInsets();
-  const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('back');
-  const [carModel, setCarModel] = useState<string>(t("carNotDetected"));
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const [prediction, setPrediction] = useState<{
+    label: string;
+    confidence: number;
+  } | null>(null);
+  const model = useTensorflowModel(require('@/assets/model/car_classifier.tflite'));
+  const { resize } = useResizePlugin();
 
   useEffect(() => {
-    if (!hasPermission) requestPermission();
-  }, [hasPermission]);
+    if (!hasPermission) {
+      requestPermission();
+    }
+  }, [hasPermission, requestPermission]);
 
-  if (!hasPermission || !device) {
+  const updatePrediction = Worklets.createRunOnJS(
+    (index: number, confidence: number) => {
+      const label = labels[index];
+
+      if (!label || confidence < CONFIDENCE_THRESHOLD) {
+        setPrediction(null);
+        return;
+      }
+
+      setPrediction({
+        label,
+        confidence,
+      });
+    },
+  );
+
+  const frameProcessor = useFrameProcessor(
+    (frame) => {
+      'worklet';
+
+      runAtTargetFps(2, () => {
+        'worklet';
+
+        if (model.state !== 'loaded') {
+          return;
+        }
+
+        const cropSize = Math.min(frame.width, frame.height);
+        const cropX = (frame.width - cropSize) / 2;
+        const cropY = (frame.height - cropSize) / 2;
+
+        const resized = resize(frame, {
+          crop: {
+            x: cropX,
+            y: cropY,
+            width: cropSize,
+            height: cropSize,
+          },
+          scale: {
+            width: MODEL_INPUT_SIZE,
+            height: MODEL_INPUT_SIZE,
+          },
+          pixelFormat: 'rgb',
+          dataType: 'float32',
+        });
+
+        const outputs = model.model.runSync([resized]) as Float32Array[];
+        const output = outputs[0];
+
+        if (!output || output.length === 0) {
+          return;
+        }
+
+        let maxIndex = 0;
+        let maxConfidence = Number(output[0]);
+
+        for (let i = 1; i < output.length; i += 1) {
+          const confidence = Number(output[i]);
+
+          if (confidence > maxConfidence) {
+            maxConfidence = confidence;
+            maxIndex = i;
+          }
+        }
+
+        updatePrediction(maxIndex, maxConfidence);
+      });
+    },
+    [model, resize, updatePrediction],
+  );
+
+  if (!device) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.loadingText}>{t("cameraNotFound")}</Text>
+      <View style={styles.center}>
+        <Text style={styles.text}>Camera is not available</Text>
+      </View>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.text}>Camera permission is required</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Camera style={StyleSheet.absoluteFill} device={device} isActive={true}/>
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive
+        frameProcessor={frameProcessor}
+      />
 
-      <View style={styles.topBar}>
-        <Text style={styles.screenTitle}>{t("carBrands")}</Text>
-      </View>
+      <View style={styles.overlay}>
+        <View style={styles.scanBox} />
 
-      <View style={[styles.labelContainer, { bottom: safeAreaInsets.bottom + 90 }]}>
-        <Ionicons name="car-sport" size={24} color="#38bdf8" style={{ marginRight: 10 }}/>
-        <Text style={styles.labelText}>{carModel}</Text>
+        {prediction && (
+          <View style={styles.result}>
+            <Text style={styles.label}>{prediction.label}</Text>
+            <Text style={styles.confidence}>
+              {(prediction.confidence * 100).toFixed(1)}%
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -43,46 +153,49 @@ export default function CarsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000'
+    backgroundColor: '#000',
   },
-  centerContainer: {
+  center: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a'
+    justifyContent: 'center',
+    backgroundColor: '#020617',
   },
-  loadingText: {
+  text: {
     color: '#fff',
-    fontSize: 16
+    fontSize: 16,
   },
-  topBar: {
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanBox: {
+    width: width * 0.7,
+    height: width * 0.7,
+    borderWidth: 2,
+    borderColor: '#38bdf8',
+    borderRadius: 20,
+  },
+  result: {
     position: 'absolute',
-    top: 60,
+    bottom: 80,
     left: 20,
     right: 20,
-    alignItems: 'center',
-    zIndex: 10
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.75)',
   },
-  screenTitle: {
+  label: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold'
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
   },
-  labelContainer: {
-    position: "absolute",
-    alignSelf: "center",
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: "rgba(15, 23, 42, 0.85)",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)'
-  },
-  labelText: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "600"
+  confidence: {
+    color: '#38bdf8',
+    fontSize: 15,
+    marginTop: 6,
+    textAlign: 'center',
   },
 });

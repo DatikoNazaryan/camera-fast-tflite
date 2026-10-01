@@ -35,34 +35,16 @@ type UseObjectRecognitionProps = {
 
 export const useObjectRecognition = ({ isSpeechEnabled, }: UseObjectRecognitionProps) => {
   const cameraRef = useRef<Camera>(null);
-
   const isCapturingRef = useRef(false);
-
-  const recognitionTimerRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const pendingRecognitionRef =
-    useRef<PendingRecognition | null>(null);
-
+  const recognitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRecognitionRef = useRef<PendingRecognition | null>(null);
   const lastRecognizedRef = useRef('');
-
   const [isScanning, setIsScanning] = useState(true);
-
-  const [predictedValue, setPredictedValue] =
-    useState<string | null>(null);
-
-  const [recognizedImage, setRecognizedImage] =
-    useState<string | null>(null);
-
-  const [recognizedName, setRecognizedName] =
-    useState<string | null>(null);
-
-  const [recognizedConfidence, setRecognizedConfidence] =
-    useState<number | null>(null);
-
-  const objectDetection = useTensorflowModel(
-    require('@/assets/model/my-model.tflite'),
-  );
+  const [predictedValue, setPredictedValue] = useState<string | null>(null);
+  const [recognizedImage, setRecognizedImage] = useState<string | null>(null);
+  const [recognizedName, setRecognizedName] = useState<string | null>(null);
+  const [recognizedConfidence, setRecognizedConfidence] = useState<number | null>(null);
+  const objectDetection = useTensorflowModel(require('@/assets/model/my-model.tflite'),);
 
   const model =
     objectDetection.state === 'loaded'
