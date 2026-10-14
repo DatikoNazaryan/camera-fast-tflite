@@ -14,8 +14,9 @@
         "NSCameraUsageDescription": "$(PRODUCT_NAME) needs access to your Camera.",
         "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone."
       },
-      "bundleIdentifier": "com.anonymous.my",
-      "icon": "./assets/images/icon.png"
+      "bundleIdentifier": "com.datiko.objectrecognition",
+      "icon": "./assets/images/icon.png",
+      "appleTeamId": "KWR7X6YHDR"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +28,8 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "package": "com.anonymous.my"
     },
@@ -61,7 +63,8 @@
       [
         "react-native-fast-tflite",
         {
-          "enableCoreMLDelegate": true
+          "enableCoreMLDelegate": true,
+          "enableAndroidGpuLibraries": true
         }
       ],
       "expo-font",

@@ -1,4 +1,8 @@
-import { useCallback, useState, useRef } from 'react';
+import {
+  useCallback,
+  useRef,
+  useState,
+} from 'react';
 import {
   FlatList,
   StyleSheet,
@@ -7,68 +11,158 @@ import {
   View,
   Image,
   Animated,
+  Alert,
+  RefreshControl, ActivityIndicator,
 } from 'react-native';
+import moment from 'moment';
+import Input from '@/src/components/form/Input';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import secureStorage from '@/src/utils/secureStorage';
 import { Swipeable } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-type RecognitionItem = {
-  id: string;
-  name: string;
-  confidence: number;
-  imageUri?: string;
-  createdAt: string;
-};
-
-const RECOGNITION_HISTORY_KEY = 'recognition.history';
+import { useSafeAreaInsets, } from 'react-native-safe-area-context';
+import { getRecognitionsRequest, deleteRecognitionRequest, } from '@/src/store/actions/recognitionAction';
+import { useAppDispatch, useAppSelector } from '@/src/store';
+import { API_URL } from '@src/Api';
 
 export default function HistoryScreen() {
   const { t } = useTranslation();
-  const [history, setHistory] = useState<RecognitionItem[]>([]);
+  const dispatch = useAppDispatch();
   const safeAreaInsets = useSafeAreaInsets();
-  const rowRefs = useRef<{ [key: string]: Swipeable | null }>({});
+  const history = useAppSelector((state) => state.recognitionReduce.recognitions);
+  const requestMessage = useAppSelector((state) => state.recognitionReduce.requestMessage);
+  const historyListData = useAppSelector(state => state.recognitionReduce.recognitionsListData);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const rowRefs = useRef<{ [key: string]: Swipeable | null; }>({});
+  const [search, setSearch] = useState('');
 
-  const loadHistory = async () => {
-    const data =
-      (await secureStorage.getArrayAsync<RecognitionItem>(
-        RECOGNITION_HISTORY_KEY,
-      )) ?? [];
-
-    setHistory(data);
-  };
+  const getRecognitions = useCallback((page = 1) => {
+    dispatch(getRecognitionsRequest({
+      page,
+      search: search.trim() || undefined,
+      limit: 10,
+    }));
+  }, [search]);
 
   useFocusEffect(
     useCallback(() => {
-      loadHistory();
+      getRecognitions();
+      setSelectedIds([]);
     }, []),
   );
 
-  const clearHistory = async () => {
-    await secureStorage.setArrayAsync(RECOGNITION_HISTORY_KEY, []);
-    setHistory([]);
-  };
+  const isLoading = requestMessage === 'request';
+  const isAllSelected =
+    history.length > 0 &&
+    selectedIds.length === history.length;
 
-  const deleteItem = async (id: string) => {
-    if (rowRefs.current[id]) {
-      rowRefs.current[id]?.close();
+  const toggleSelection = useCallback(
+    (id: string) => {
+      setSelectedIds((current) => {
+        if (current.includes(id)) {
+          return current.filter(
+            (itemId) => itemId !== id,
+          );
+        }
+
+        return [...current, id];
+      });
+    },
+    [],
+  );
+
+  const toggleSelectAll = useCallback(() => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+      return;
     }
-    const updatedHistory = history.filter((item) => item.id !== id);
-    await secureStorage.setArrayAsync(RECOGNITION_HISTORY_KEY, updatedHistory);
-    setHistory(updatedHistory);
-  };
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleString();
-  };
+    setSelectedIds(
+      history.map((item) => item.id),
+    );
+  }, [history, isAllSelected]);
+
+  const deleteItem = useCallback(
+    async (id: string) => {
+      rowRefs.current[id]?.close();
+
+      try {
+        await dispatch(
+          deleteRecognitionRequest(id),
+        ).unwrap();
+
+        setSelectedIds((current) =>
+          current.filter(
+            (itemId) => itemId !== id,
+          ),
+        );
+      } catch (error) {
+        console.error(
+          'Failed to delete recognition:',
+          error,
+        );
+      }
+    },
+    [dispatch],
+  );
+
+  const deleteSelected = useCallback(() => {
+    if (selectedIds.length === 0) {
+      return;
+    }
+
+    Alert.alert(
+      t('DeleteHistory'),
+      t('DeleteSelectedHistoryConfirm', {
+        count: selectedIds.length,
+      }),
+      [
+        {
+          text: t('Cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('Delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Promise.all(
+                selectedIds.map((id) =>
+                  dispatch(
+                    deleteRecognitionRequest(id),
+                  ).unwrap(),
+                ),
+              );
+
+              setSelectedIds([]);
+            } catch (error) {
+              console.error(
+                'Failed to delete selected recognitions:',
+                error,
+              );
+            }
+          },
+        },
+      ],
+    );
+  }, [dispatch, selectedIds, t]);
+
+  const getImageUrl = useCallback(
+    (imageUrl: string | null) => {
+      if (!imageUrl) {
+        return null;
+      }
+
+      return `${API_URL}${imageUrl}`;
+    },
+    [],
+  );
 
   const renderRightActions = (
     progress: Animated.AnimatedInterpolation<number>,
     dragX: Animated.AnimatedInterpolation<number>,
-    id: string
+    id: string,
   ) => {
     const scale = dragX.interpolate({
       inputRange: [-80, 0],
@@ -81,99 +175,225 @@ export default function HistoryScreen() {
         style={styles.deleteAction}
         onPress={() => deleteItem(id)}
       >
-        <Animated.View style={{ transform: [{ scale }] }}>
-          <Ionicons name="trash-outline" size={24} color="#fff" />
+        <Animated.View style={{ transform: [{ scale }], }}>
+          <Ionicons
+            name="trash-outline"
+            size={24}
+            color="#fff"
+          />
         </Animated.View>
       </TouchableOpacity>
     );
   };
 
-  const renderItem = ({ item }: { item: RecognitionItem }) => (
-    <Swipeable
-      ref={(ref) => {
-        rowRefs.current[item.id] = ref;
-      }}
-      renderRightActions={(progress, dragX) =>
-        renderRightActions(progress, dragX, item.id)
-      }
-      overshootRight={false}
-    >
-      <View style={styles.card}>
-        {item.imageUri ? (
-          <Image source={{ uri: item.imageUri }} style={styles.imageThumbnail} />
-        ) : (
-          <View style={styles.iconContainer}>
-            <Ionicons name="cube-outline" size={26} color="#38bdf8" />
+
+  const renderItem = ({ item, }: { item: (typeof history)[number]; }) => {
+    const selected = selectedIds.includes(
+      item.id,
+    );
+
+    const imageUrl = getImageUrl(
+      item.imageUrl,
+    );
+
+    return (
+      <Swipeable
+        ref={(ref) => {
+          rowRefs.current[item.id] = ref;
+        }}
+        renderRightActions={(
+          progress,
+          dragX,
+        ) =>
+          renderRightActions(
+            progress,
+            dragX,
+            item.id,
+          )
+        }
+        overshootRight={false}
+      >
+        <View
+          style={[
+            styles.card,
+            selected && styles.selectedCard,
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.checkboxButton}
+            onPress={() =>
+              toggleSelection(item.id)
+            }
+          >
+            <View
+              style={[
+                styles.checkbox,
+                selected &&
+                styles.checkboxSelected,
+              ]}
+            >
+              {selected && (
+                <Ionicons
+                  name="checkmark"
+                  size={16}
+                  color="#fff"
+                />
+              )}
+            </View>
+          </TouchableOpacity>
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl, }}
+              style={styles.imageThumbnail}
+            />
+          ) : (
+            <View style={styles.iconContainer}>
+              <Ionicons
+                name="cube-outline"
+                size={26}
+                color="#38bdf8"
+              />
+            </View>
+          )}
+
+          <View style={styles.content}>
+            <Text style={styles.name} numberOfLines={1}>
+              {item.name}
+            </Text>
+            <Text style={styles.date}>
+              {moment(item.createdAt).format('D MMMM, HH:mm')}
+            </Text>
           </View>
-        )}
 
-        <View style={styles.content}>
-          <Text style={styles.name} numberOfLines={1}>
-            {item.name}
-          </Text>
-
-          <Text style={styles.date}>
-            {formatDate(item.createdAt)}
-          </Text>
+          <View style={styles.rightContainer}>
+            <Text style={styles.confidence}>
+              {Math.round(item.confidence * 100)}%
+            </Text>
+          </View>
         </View>
-
-        <View style={styles.rightContainer}>
-          <Text style={styles.confidence}>
-            {Math.min(100, Math.round(item.confidence))} %
-          </Text>
-        </View>
-      </View>
-    </Swipeable>
-  );
+      </Swipeable>
+    );
+  };
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#0f172a', '#1e293b', '#334155']}
-        style={[styles.gradient, { paddingTop: safeAreaInsets.top + 20 }]}
+        colors={['#0f172a', '#1e293b', '#334155',]}
+        style={[
+          styles.gradient,
+          { paddingTop: safeAreaInsets.top + 20, },
+        ]}
       >
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('History')}</Text>
-
-        {history.length > 0 && (
+        <View style={styles.header}>
+          <Text style={styles.title}>
+            {t('History')}
+          </Text>
           <TouchableOpacity
-            style={styles.clearButton}
-            onPress={clearHistory}
+            style={styles.deleteSelectedButton}
+            onPress={deleteSelected}
           >
             <Ionicons
               name="trash-outline"
-              size={20}
-              color="#f87171"
+              size={19}
+              color="#fff"
             />
           </TouchableOpacity>
-        )}
-      </View>
-
-      {history.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons
-            name="time-outline"
-            size={64}
-            color="#475569"
-          />
-
-          <Text style={styles.emptyTitle}>
-            {t('NoHistory')}
-          </Text>
-
-          <Text style={styles.emptyText}>
-            {t('RecognizedObjectsWillAppearHere')}
-          </Text>
         </View>
-      ) : (
-        <FlatList
-          data={history}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+        <View style={styles.searchContainer}>
+          <Input
+            value={search}
+            onChangeText={setSearch}
+            placeholder={t('SearchHistory')}
+            iconLeft="search-outline"
+            iconRight={search ? 'close-circle' : undefined}
+            onIconRightPress={() => setSearch('')}
+            iconSize={21}
+            wrapperStyle={styles.searchInputWrapper}
+            style={styles.searchInput}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+        {history.length > 0 && (
+          <View style={styles.selectionToolbar}>
+            <TouchableOpacity
+              style={styles.selectAllButton}
+              onPress={toggleSelectAll}
+            >
+              <Ionicons
+                name={
+                  isAllSelected
+                    ? 'checkbox'
+                    : 'square-outline'
+                }
+                size={22}
+                color="#38bdf8"
+              />
+
+              <Text
+                style={styles.selectAllText}
+              >
+                {isAllSelected
+                  ? t('DeselectAll')
+                  : t('SelectAll')}
+              </Text>
+            </TouchableOpacity>
+            {selectedIds.length > 0 && (
+              <Text style={styles.selectedText}>
+                {t('Selected')}{' '}
+                {selectedIds.length}
+              </Text>
+            )}
+          </View>
+        )}
+        {history.length === 0 &&
+        !isLoading ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="time-outline"
+              size={64}
+              color="#475569"
+            />
+
+            <Text style={styles.emptyTitle}>
+              {t('NoHistory')}
+            </Text>
+
+            <Text style={styles.emptyText}>
+              {t(
+                'RecognizedObjectsWillAppearHere',
+              )}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={history}
+            keyExtractor={(item) => item.id}
+            refreshControl={(
+              <RefreshControl
+                refreshing={requestMessage === 'request' && history.length === 0}
+                onRefresh={getRecognitions}
+                progressViewOffset={safeAreaInsets.top}
+              />
+            )}
+            renderItem={renderItem}
+            contentContainerStyle={
+              styles.list
+            }
+            showsVerticalScrollIndicator={false}
+            onEndReachedThreshold={0.3}
+            onEndReached={() => {
+              if (historyListData.page < historyListData.totalPages && requestMessage !== 'request') {
+                getRecognitions(historyListData.page + 1);
+              }
+            }}
+            ListFooterComponent={(
+              historyListData.page || 0) < (historyListData?.totalPages || 0) ? (
+              <ActivityIndicator />
+            ) : null}
+          />
+        )}
       </LinearGradient>
     </View>
   );
@@ -183,6 +403,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
+  gradient: {
+    flex: 1,
+  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -191,8 +416,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  gradient: {
-    flex: 1,
+  searchContainer: {
+    paddingHorizontal: 18,
+    marginBottom: 4,
+  },
+
+  searchInputWrapper: {
+    marginVertical: 4,
+  },
+
+  searchInput: {
+    height: 50,
+    borderRadius: 16,
+    paddingLeft: 48,
+    paddingRight: 44,
+    fontSize: 15,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderColor: 'rgba(56, 189, 248, 0.25)',
   },
 
   title: {
@@ -201,13 +441,46 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  clearButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(248, 113, 113, 0.1)',
-    justifyContent: 'center',
+  selectAllButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+  },
+
+  selectAllText: {
+    color: '#38bdf8',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  selectionToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+
+  selectedText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  deleteSelectedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+
+  deleteSelectedText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   list: {
@@ -218,24 +491,39 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    backgroundColor:
+      'rgba(15, 23, 42, 0.9)',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.15)',
+    borderColor:
+      'rgba(56, 189, 248, 0.15)',
     padding: 14,
     marginBottom: 12,
   },
 
-  // Աջից քաշելիս բացվող կոճակի ոճը
-  deleteAction: {
-    backgroundColor: '#ef4444',
+  selectedCard: {
+    borderColor:
+      'rgba(56, 189, 248, 0.6)',
+  },
+
+  checkboxButton: {
+    marginRight: 10,
+    padding: 3,
+  },
+
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#64748b',
     justifyContent: 'center',
     alignItems: 'center',
-    width: 80,
-    height: '83%', // Համապատասխանում է քարտի բարձրությանը (հանած margin-ը)
-    borderRadius: 18,
-    marginBottom: 12,
-    marginLeft: 8,
+  },
+
+  checkboxSelected: {
+    backgroundColor: '#38bdf8',
+    borderColor: '#38bdf8',
   },
 
   imageThumbnail: {
@@ -244,14 +532,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginRight: 14,
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderColor:
+      'rgba(56, 189, 248, 0.3)',
   },
 
   iconContainer: {
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    backgroundColor:
+      'rgba(56, 189, 248, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -282,6 +572,17 @@ const styles = StyleSheet.create({
     color: '#38bdf8',
     fontSize: 13,
     fontWeight: '600',
+  },
+
+  deleteAction: {
+    backgroundColor: '#ef4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '83%',
+    borderRadius: 18,
+    marginBottom: 12,
+    marginLeft: 8,
   },
 
   emptyContainer: {

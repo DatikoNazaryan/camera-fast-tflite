@@ -7,9 +7,8 @@ import {
   useCameraDevice,
   useCameraPermission,
 } from 'react-native-vision-camera';
-import { useRouter } from 'expo-router';
+import { useIsFocused, useRouter } from 'expo-router';
 import { useState } from 'react';
-
 import CameraPermission from '@/src/components/camera/CameraPermission';
 import CameraUnavailable from '@/src/components/camera/CameraUnavailable';
 import CameraTopBar from '@/src/components/camera/CameraTopBar';
@@ -17,11 +16,14 @@ import ScanOverlay from '@/src/components/camera/ScanOverlay';
 import RecognitionLabel from '@/src/components/camera/RecognitionLabel';
 import RecognitionResult from '@/src/components/camera/RecognitionResult';
 import { useObjectRecognition } from '@/src/hooks/useObjectRecognition';
+import useAppState from "@src/hooks/useAppState";
 
 export default function CameraScreen() {
   const router = useRouter();
   const { hasPermission, requestPermission, } = useCameraPermission();
   const device = useCameraDevice('back');
+  const isFocused = useIsFocused();
+  const appState = useAppState();
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
   const {
     cameraRef,
@@ -44,6 +46,8 @@ export default function CameraScreen() {
     return <CameraUnavailable />;
   }
 
+  const isActive = isScanning && isFocused && appState === 'active';
+
   return (
     <View style={styles.container}>
       <Camera
@@ -51,7 +55,7 @@ export default function CameraScreen() {
         frameProcessor={frameProcessor}
         style={StyleSheet.absoluteFill}
         device={device}
-        isActive={isScanning}
+        isActive={isActive}
         photo
       />
 

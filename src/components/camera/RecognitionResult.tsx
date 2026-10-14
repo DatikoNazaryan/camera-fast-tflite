@@ -47,11 +47,7 @@ export default function RecognitionResult(props: Props) {
 
             {confidence !== null && (
               <Text style={styles.confidence}>
-                {Math.min(
-                  100,
-                  Math.round(confidence),
-                )}
-                %
+                {Math.round(confidence * 100)}%
               </Text>
             )}
           </View>

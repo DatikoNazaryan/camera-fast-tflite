@@ -1,22 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { Platform } from 'react-native';
 import { Camera, runAtTargetFps, useFrameProcessor } from 'react-native-vision-camera';
 import { useTensorflowModel } from 'react-native-fast-tflite';
 import { useResizePlugin } from 'vision-camera-resize-plugin';
 import { useRunOnJS } from 'react-native-worklets-core';
 import * as FileSystem from 'expo-file-system/legacy';
 import i18n from 'i18next';
-
 import labelEn from '@/assets/lables/labelsEn.json';
 import labelRu from '@/assets/lables/labelsRu.json';
 import labelHy from '@/assets/lables/labelsHy.json';
-
+import { useAppDispatch } from '@src/store';
 import { CONFIDENCE_THRESHOLD } from '@/src/constants/theme';
 import {
   MODEL_INPUT_SIZE,
   RECOGNITION_DELAY,
 } from '@/src/constants/camera';
 import saveRecognition from '@/src/helpers/history';
+import { NitroModules } from 'react-native-nitro-modules';
 import { useRecognitionSpeech } from '@/src/hooks/useRecognitionSpeech';
+import { useTranslation } from "react-i18next";
 
 type Label = {
   id: number;
@@ -34,22 +36,32 @@ type UseObjectRecognitionProps = {
 };
 
 export const useObjectRecognition = ({ isSpeechEnabled, }: UseObjectRecognitionProps) => {
+  const { t } = useTranslation();
   const cameraRef = useRef<Camera>(null);
   const isCapturingRef = useRef(false);
   const recognitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRecognitionRef = useRef<PendingRecognition | null>(null);
   const lastRecognizedRef = useRef('');
+  const dispatch = useAppDispatch();
   const [isScanning, setIsScanning] = useState(true);
   const [predictedValue, setPredictedValue] = useState<string | null>(null);
   const [recognizedImage, setRecognizedImage] = useState<string | null>(null);
   const [recognizedName, setRecognizedName] = useState<string | null>(null);
   const [recognizedConfidence, setRecognizedConfidence] = useState<number | null>(null);
-  const objectDetection = useTensorflowModel(require('@/assets/model/my-model.tflite'),);
-
+  const objectDetection = useTensorflowModel(
+    require('@/assets/model/my-model.tflite'),
+    Platform.OS === 'ios' ? ['core-ml'] : [],
+  );
   const model =
     objectDetection.state === 'loaded'
       ? objectDetection.model
       : undefined;
+
+  const boxedModel = useMemo(
+    () => (model ? NitroModules.box(model) : undefined),
+    [model],
+  );
+
 
   const { resize } = useResizePlugin();
 
@@ -66,8 +78,8 @@ export const useObjectRecognition = ({ isSpeechEnabled, }: UseObjectRecognitionP
         ? labelEn
         : labelHy;
 
-  const searchingText = i18n.t('searching');
-  const unknownText = i18n.t('unknown');
+  const searchingText = t('searching');
+  const unknownText = t('unknown');
 
   useEffect(() => {
     return () => {
@@ -122,6 +134,7 @@ export const useObjectRecognition = ({ isSpeechEnabled, }: UseObjectRecognitionP
         setIsScanning(false);
 
         await saveRecognition(
+          dispatch,
           name,
           confidence,
           permanentUri,
@@ -201,26 +214,22 @@ export const useObjectRecognition = ({ isSpeechEnabled, }: UseObjectRecognitionP
   const frameProcessor = useFrameProcessor(
     (frame) => {
       'worklet';
-
-      if (!model || !isScanning) {
-        return;
-      }
-
       runAtTargetFps(2, () => {
         'worklet';
 
-        const cropSize = Math.min(
-          frame.width,
-          frame.height,
-        );
 
-        const cropX =
-          (frame.width - cropSize) / 2;
+        if (!boxedModel || !isScanning) {
+          return;
+        }
 
-        const cropY =
-          (frame.height - cropSize) / 2;
 
-        const resized = resize(frame, {
+        const tflite = boxedModel.unbox();
+
+        const cropSize = Math.min(frame.width, frame.height);
+        const cropX = (frame.width - cropSize) / 2;
+        const cropY = (frame.height - cropSize) / 2;
+
+        let resized = resize(frame, {
           crop: {
             x: cropX,
             y: cropY,
@@ -231,70 +240,75 @@ export const useObjectRecognition = ({ isSpeechEnabled, }: UseObjectRecognitionP
             width: MODEL_INPUT_SIZE,
             height: MODEL_INPUT_SIZE,
           },
+          rotation: '0deg',
           pixelFormat: 'rgb',
           dataType: 'uint8',
         });
 
-        const outputs = model.runSync([
-          resized,
-        ]) as Float32Array[];
+        const inputBuffer = new ArrayBuffer(resized.byteLength);
+        new Uint8Array(inputBuffer).set(resized);
 
-        const logits = outputs[0];
+        const outputs = tflite.runSync([inputBuffer]);
+        const outputBuffer = outputs[0];
+
+        if (!outputBuffer) {
+          return;
+        }
+
+// Model output: uint8, shape [1, 631]
+        const scores = new Uint8Array(outputBuffer);
+
+        if (scores.length !== labels.length) {
+          return;
+        }
 
         let maxIndex = 0;
-        let maxValue = logits[0];
+        let maxValue = 0;
 
-        for (let i = 1; i < logits.length; i += 1) {
-          if (logits[i] > maxValue) {
-            maxValue = logits[i];
+        for (let i = 0; i < scores.length; i += 1) {
+          if (scores[i] > maxValue) {
+            maxValue = scores[i];
             maxIndex = i;
           }
         }
 
-        if (
-          maxValue >
-          CONFIDENCE_THRESHOLD
-        ) {
-          let name =
-            labels[maxIndex]?.name ??
-            unknownText;
+        const confidence = maxValue / 255;
 
-          if (
-            name.toLowerCase() ===
-            'furniture'
-          ) {
+        if (confidence > CONFIDENCE_THRESHOLD) {
+          let name = labels[maxIndex]?.name ?? unknownText;
+
+          if (name.toLowerCase() === 'furniture') {
             name = searchingText;
           }
 
           setPredictedValueJS(name);
 
+          const label = labels[maxIndex];
+
           if (
+            label &&
             name !== searchingText &&
             name !== unknownText &&
-            name !==
-            lastRecognizedRef.current
+            name !== lastRecognizedRef.current
           ) {
-            lastRecognizedRef.current =
-              name;
+            lastRecognizedRef.current = name;
 
             handleRecognitionRun(
-              labels[maxIndex].id,
+              label.id,
               name,
-              maxValue,
+              confidence,
             );
           }
         } else {
-          setPredictedValueJS(
-            searchingText,
-          );
+          setPredictedValueJS(searchingText);
         }
       });
     },
     [
-      model,
-      labels,
+      boxedModel,
       isScanning,
       resize,
+      labels,
       searchingText,
       unknownText,
       setPredictedValueJS,

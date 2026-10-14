@@ -1,19 +1,10 @@
-const { getDefaultConfig } = require("expo/metro-config");
 
-module.exports = (() => {
-  const config = getDefaultConfig(__dirname);
+const { getDefaultConfig } = require('expo/metro-config');
 
-  const { transformer, resolver } = config;
+const config = getDefaultConfig(__dirname);
 
-  config.transformer = {
-    ...transformer,
-  };
-  config.resolver = {
-    ...resolver,
-    assetExts: [...resolver.assetExts, 'tflite'],
-    sourceExts: [...resolver.sourceExts],
-  };
+if (!config.resolver.assetExts.includes('tflite')) {
+    config.resolver.assetExts.push('tflite');
+}
 
-
-  return config;
-})();
+module.exports = config;

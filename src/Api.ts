@@ -3,10 +3,15 @@ import { AppState } from 'react-native';
 import Account from '@src/utils/Account';
 import { fetch } from 'expo/fetch';
 import i18n from '@src/locales/i18n';
+import {
+  CreateRecognitionRequest,
+  RecognitionResponse,
+  RecognitionHistoryResponse, getRecognitionsParams,
+} from '@/src/types/recognition';
 import qs from 'query-string';
 import { UserRegisterRequest, UserLoginRequest, UpdateUserRequest } from '@/src/types/user';
 
-const API_URL = 'http://192.168.31.5:3000';
+export const API_URL = 'http://192.168.31.5:3000';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -98,21 +103,55 @@ class Api {
     return api.post('/api/auth/register', data);
   }
 
-  static updateUser(payload: UpdateUserRequest): Promise<AxiosResponse> {
-    return api.patch(
-      `/api/auth/users/${payload.userId}`,
-      {
-        field: payload.field,
-        value: payload.value,
-      },
+  static updateUser(payload: UpdateUserRequest,): Promise<AxiosResponse> {
+    return api.post('/api/auth/me', {
+      field: payload.field,
+      value: payload.value,
+    });
+  }
+
+  static updateAvatar(data: any): Promise<AxiosResponse> {
+    return api.post('/api/auth/me/avatar', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  }
+
+  static deleteUser(): Promise<AxiosResponse> {
+    return api.delete('/api/auth/me',);
+  }
+
+
+// recognition
+
+  static createRecognition(data: CreateRecognitionRequest,): Promise<AxiosResponse<RecognitionResponse>> {
+    return api.post( '/api/recognitions',   data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+  }
+
+  static getRecognitions(data: getRecognitionsParams): Promise<
+    AxiosResponse<RecognitionHistoryResponse>
+  > {
+    return api.get('/api/recognitions', {
+      params: data,
+    });
+  }
+
+  static getRecognition(id: string,): Promise<AxiosResponse<RecognitionResponse>> {
+    return api.get(`/api/recognitions/${id}`);
+  }
+
+  static deleteRecognition(id: string,): Promise<AxiosResponse> {
+    return api.delete(
+      `/api/recognitions/${id}`,
     );
   }
 
-  static deleteUser(userId: string ): Promise<AxiosResponse> {
-    return api.delete(
-      `/api/auth/users/${userId}`,
-    );
-  }
+
 }
 
 export default Api;

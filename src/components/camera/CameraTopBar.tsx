@@ -25,10 +25,9 @@ export default function CameraTopBar({
         <Ionicons
           name="arrow-back"
           size={24}
-          color="#fff"
+          color="#38bdf8"
         />
       </TouchableOpacity>
-
       <TouchableOpacity
         style={styles.button}
         onPress={onToggleSpeech}

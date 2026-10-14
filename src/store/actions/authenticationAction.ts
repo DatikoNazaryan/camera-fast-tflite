@@ -41,4 +41,19 @@ export const updateUserRequest = createAsyncThunk(
   },
 );
 
+export const updateAvatarRequest = createAsyncThunk(
+  'auth/updateAvatar',
+  async (payload: any, thunkAPI,) => {
+    try {
+      const { data } = await Api.updateAvatar(payload);
+
+      return data;
+    } catch (e: any) {
+      return thunkAPI.rejectWithValue(
+        e.response?.data,
+      );
+    }
+  },
+);
+
 export const logOut = createAction('logOut');

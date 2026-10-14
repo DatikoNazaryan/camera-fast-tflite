@@ -10,9 +10,10 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
-
+import FilePickerModal from '@src/components/modals/FilePickerModal';
 import { useColorScheme } from '@/src/hooks/use-color-scheme';
 import { store, useAppSelector } from '@src/store';
 
@@ -28,27 +29,27 @@ function AppContent() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider
-          value={
-            colorScheme === 'dark'
-              ? DarkTheme
-              : DefaultTheme
-          }
-        >
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Protected guard={Boolean(token)}>
-              <Stack.Screen name="(tabs)" />
-            </Stack.Protected>
-
-            <Stack.Protected guard={!token}>
-              <Stack.Screen name="registration" />
-            </Stack.Protected>
-          </Stack>
-
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </SafeAreaProvider>
+      <BottomSheetModalProvider>
+        <SafeAreaProvider>
+          <ThemeProvider
+            value={
+              colorScheme === 'dark'
+                ? DarkTheme
+                : DefaultTheme
+            }
+          >
+            <Stack screenOptions={{ headerShown: false }}>
+              {token ? (
+                <Stack.Screen name="(tabs)" />
+              ) : (
+                <Stack.Screen name="registration" />
+              )}
+            </Stack>
+            <FilePickerModal/>
+            <StatusBar style="auto"/>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 }
@@ -56,7 +57,7 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <Provider store={store}>
-      <AppContent />
+      <AppContent/>
     </Provider>
   );
 }

@@ -2,10 +2,12 @@ import { combineReducers } from 'redux';
 import AuthenticationReduce from '@src/store/reducers/authenticationReduce';
 import storage from '@/src/utils/storage';
 import secureStorage from '@src/utils/secureStorage';
+import recognitionReduce from '@src/store/reducers/recognitionReduce';
 import { logOut } from '@src/store/actions/authenticationAction';
 
 const appReducer = combineReducers({
-  AuthenticationReduce
+  AuthenticationReduce,
+  recognitionReduce
 });
 
 const rootReducer = (state: ReturnType<typeof appReducer> | undefined, action: any) => {

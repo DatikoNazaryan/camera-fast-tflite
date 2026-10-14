@@ -1,9 +1,4 @@
-import { registerRootComponent } from "expo";
-import App from "./App";
-import { AppRegistry, Platform } from "react-native";
+import { registerRootComponent } from 'expo';
+import App from './App';
 
 registerRootComponent(App);
-
-if (Platform.OS === 'android') {
-  AppRegistry.registerComponent("shareExtensionAndroid", () => require('@src/share/ShareExtension.android').default);
-}

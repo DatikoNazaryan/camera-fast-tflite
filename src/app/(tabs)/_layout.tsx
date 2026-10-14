@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Dimensions, Platform, ViewStyle } from 'react-native';
+import { Platform, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from "react-i18next";
 
@@ -25,8 +25,6 @@ const tabBarStyle: ViewStyle = {
   shadowOpacity: 0.3,
   shadowRadius: 12,
 };
-
-const { width } = Dimensions.get('window');
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -61,16 +59,6 @@ export default function TabLayout() {
             <Ionicons name="home" size={size - 2} color={color} />
           ),
           tabBarLabel: t("Home"),
-        }}
-      />
-      <Tabs.Screen
-        name="cars"
-        options={{
-          title: t('Cars'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="car-sport" size={size - 2} color={color} />
-          ),
-          tabBarLabel: t('Cars'),
         }}
       />
       <Tabs.Screen

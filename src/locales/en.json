@@ -34,12 +34,19 @@
   "namePlaceholder": "Full Name",
   "emailPlaceholder": "Email",
   "passwordPlaceholder": "Password",
+  "DeselectAll": "Deselect All",
+  "SelectAll": "Select All",
+  "Selected": "Selected",
+  "DeleteSelected": "Delete Selected",
+  "SearchHistory": "Search History",
   "common": {
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete"
   },
   "settings": {
+    "failedToUpdateAvatar": "Failed to update avatar",
+    "avatarUpdated": "Avatar updated successfully",
     "failedToUpdateName": "Failed to update name",
     "failedToUpdatePassword": "Failed to update password",
     "title": "Settings",

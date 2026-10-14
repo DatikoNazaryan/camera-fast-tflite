@@ -26,6 +26,7 @@
   "welcomeTitle": "Умное распознавание",
   "welcomeSubtitle": "Сканируйте и распознавайте объекты мгновенно с помощью ИИ и камеры.",
   "login": "Войти",
+  "SearchHistory": "История поиска",
   "register": "Создать аккаунт",
   "welcomeBack": "С возвращением",
   "signInToContinue": "Войдите, чтобы получить доступ к истории сканирования",
@@ -34,12 +35,20 @@
   "namePlaceholder": "Имя и фамилия",
   "emailPlaceholder": "Эл. почта",
   "passwordPlaceholder": "Пароль",
+  "DeselectAll": "Отменить выбор всех",
+  "SelectAll": "Выбрать все",
+  "Selected": "Выбрано",
+  "DeleteSelected": "Удалить выбранные",
+  "Photo Library": "Медиатека",
+  "Take a Photo": "Сделать фото",
   "common": {
     "save": "Сохранить",
     "cancel": "Отмена",
     "delete": "Удалить"
   },
   "settings": {
+    "failedToUpdateAvatar": "Не удалось изменить аватар",
+    "avatarUpdated": "Аватар успешно изменён",
     "failedToUpdateName": "Не удалось обновить имя",
     "failedToUpdatePassword": "Не удалось обновить пароль",
     "title": "Настройки",

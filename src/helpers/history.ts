@@ -1,40 +1,43 @@
-import secureStorage from '@/src/utils/secureStorage';
+import {
+  createRecognitionRequest,
+} from '@/src/store/actions/recognitionAction';
 
-const RECOGNITION_HISTORY_KEY = 'recognition.history';
+import {
+  useAppDispatch,
+} from '@src/store';
 
-export type RecognitionItem = {
-  id: string;
-  name: string;
-  confidence: number;
-  imageUri?: string;
-  createdAt: string;
-};
+import { File } from 'expo-file-system';
 
 const saveRecognition = async (
+  dispatch: ReturnType<typeof useAppDispatch>,
   name: string,
   confidence: number,
   imageUri?: string,
 ) => {
   try {
-    const history =
-      (await secureStorage.getArrayAsync<RecognitionItem>(
-        RECOGNITION_HISTORY_KEY,
-      )) ?? [];
+    if (!imageUri) {
+      throw new Error(
+        'Image URI is required',
+      );
+    }
 
-    const newItem: RecognitionItem = {
-      id: `${Date.now()}-${Math.random()}`,
-      name,
-      confidence,
-      imageUri,
-      createdAt: new Date().toISOString(),
-    };
+    const recognition =
+      await dispatch(
+        createRecognitionRequest({
+          name,
+          confidence,
+          image: new File(imageUri),
+        }),
+      ).unwrap();
 
-    await secureStorage.setArrayAsync(
-      RECOGNITION_HISTORY_KEY,
-      [newItem, ...history],
-    );
+    return recognition;
   } catch (error) {
-    console.error('Failed to save recognition:', error);
+    console.error(
+      'Failed to save recognition:',
+      error,
+    );
+
+    throw error;
   }
 };
 

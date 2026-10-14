@@ -7,6 +7,7 @@ import {
   loginRequest,
   updateUserRequest,
   logOut,
+  updateAvatarRequest
 } from '../actions/authenticationAction';
 
 type AuthState = {
@@ -83,9 +84,12 @@ export default createReducer(
           Account.profile = action.payload.user;
         },
       )
-
       .addCase(updateUserRequest.rejected, (state) => {
           state.profileRequestMessage = 'rejected';
+        },
+      )
+      .addCase(updateAvatarRequest.fulfilled, (state, action) => {
+          state.user = action.payload.user;
         },
       );
   },
